@@ -93,6 +93,8 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size,
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 cuda = True if torch.cuda.is_available() else False
+FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
 nz = int(opt.latent_dim)
 
@@ -174,11 +176,12 @@ class Discriminator(nn.Module):
     ds_size = opt.img_size // 2 ** 4
 
     # Output layers
-    self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1))
+    self.adv_layer = nn.Linear(128 * ds_size ** 2, 1)
     self.aux_layer = nn.Sequential(
-      nn.Linear(128 * ds_size ** 2, opt.n_classes), nn.Softmax())
-    self.latent_layer = nn.Sequential(
-      nn.Linear(128 * ds_size ** 2, opt.code_dim))
+      nn.Linear(128 * ds_size ** 2, opt.n_classes),
+      nn.Softmax()
+    )
+    self.latent_layer = nn.Linear(128 * ds_size ** 2, opt.code_dim)
 
   def forward(self, img):
     out = self.conv_blocks(img)
@@ -219,9 +222,6 @@ optimizerG = torch.optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.b1, opt.b
 optimizerD = torch.optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizerInfo = torch.optim.Adam(
   itertools.chain(netG.parameters(), netD.parameters()), lr=opt.lr, betas=(opt.b1, opt.b2))
-
-FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
 # Static generator inputs for sampling
 static_z = autograd.Variable(torch.zeros(opt.n_classes ** 2, nz, device=device))
