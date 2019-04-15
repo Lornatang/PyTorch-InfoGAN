@@ -24,7 +24,7 @@ parser.add_argument('--dataroot', required=True, help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
-parser.add_argument("--img_size", type=int, default=16, help="size of each image dimension")
+parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
 parser.add_argument("--latent_dim", type=int, default=62, help="dimensionality of the latent space")
 parser.add_argument("--code_dim", type=int, default=2, help="latent code")
 parser.add_argument("--n_classes", type=int, default=10, help="number of classes for dataset")
@@ -235,10 +235,10 @@ def sample_image(n_row, batches_done):
                    f"images/static/{batches_done}.png", nrow=n_row, normalize=True)
 
   # Get varied c1 and c2
-  zeros = np.zeros((n_row ** 2, 1))
-  c_varied = np.repeat(np.linspace(-1, 1, n_row)[:, np.newaxis], n_row, 0)
-  c1 = autograd.Variable(FloatTensor(np.concatenate((c_varied, zeros), -1)))
-  c2 = autograd.Variable(FloatTensor(np.concatenate((zeros, c_varied), -1)))
+  zeros = torch.zeros(n_row ** 2, 1, device=device)
+  c_varied = np.repeat(torch.linspace(-1, 1, n_row, device=device)[:, np.newaxis], n_row, 0)
+  c1 = torch.cat((c_varied, zeros), -1).to(device)
+  c2 = torch.cat((zeros, c_varied), -1).to(device)
   sample1 = netG(static_z, static_label, c1)
   sample2 = netG(static_z, static_label, c2)
   vutil.save_image(
@@ -257,13 +257,11 @@ for epoch in range(opt.n_epochs):
     batch_size = real_imgs.shape[0]
 
     # Adversarial ground truths
-    valid = autograd.Variable(FloatTensor(
-      batch_size, 1).fill_(1.0), requires_grad=False)
-    fake = autograd.Variable(FloatTensor(
-      batch_size, 1).fill_(0.0), requires_grad=False)
+    valid = torch.full((batch_size, 1), 1, device=device)
+    fake = torch.full((batch_size, 1), 0, device=device)
 
     # Configure input
-    real_imgs = autograd.Variable(real_imgs.type(FloatTensor))
+    real_imgs = real_imgs.to(device)
     labels = to_categorical(labels.numpy(), num_columns=opt.n_classes)
 
     # -----------------
@@ -273,12 +271,9 @@ for epoch in range(opt.n_epochs):
     optimizerG.zero_grad()
 
     # Sample noise and labels as generator input
-    z = autograd.Variable(FloatTensor(
-      np.random.normal(0, 1, (batch_size, nz))))
-    label_input = to_categorical(np.random.randint(
-      0, opt.n_classes, batch_size), num_columns=opt.n_classes)
-    code_input = autograd.Variable(FloatTensor(
-      np.random.uniform(-1, 1, (batch_size, opt.code_dim))))
+    z = torch.randn(batch_size, nz, device=device)
+    label_input = to_categorical(np.random.randint(0, opt.n_classes, batch_size), num_columns=opt.n_classes)
+    code_input = autograd.Variable(FloatTensor(np.random.uniform(-1, 1, (batch_size, opt.code_dim))))
 
     # Generate a batch of images
     gen_imgs = netG(z, label_input, code_input)
@@ -324,11 +319,9 @@ for epoch in range(opt.n_epochs):
       sampled_labels), requires_grad=False)
 
     # Sample noise, labels and code as generator input
-    z = autograd.Variable(FloatTensor(
-      np.random.normal(0, 1, (batch_size, nz))))
+    z = autograd.Variable(FloatTensor(np.random.normal(0, 1, (batch_size, nz))))
     label_input = to_categorical(sampled_labels, num_columns=opt.n_classes)
-    code_input = autograd.Variable(FloatTensor(
-      np.random.uniform(-1, 1, (batch_size, opt.code_dim))))
+    code_input = autograd.Variable(FloatTensor(np.random.uniform(-1, 1, (batch_size, opt.code_dim))))
 
     gen_imgs = netG(z, label_input, code_input)
     _, pred_label, pred_code = netD(gen_imgs)
