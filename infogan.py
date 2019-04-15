@@ -24,7 +24,7 @@ parser.add_argument('--dataroot', required=True, help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
-parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
+parser.add_argument("--img_size", type=int, default=16, help="size of each image dimension")
 parser.add_argument("--latent_dim", type=int, default=62, help="dimensionality of the latent space")
 parser.add_argument("--code_dim", type=int, default=2, help="latent code")
 parser.add_argument("--n_classes", type=int, default=10, help="number of classes for dataset")
@@ -54,8 +54,7 @@ if opt.dataset in ['imagenet', 'folder', 'lfw']:
                                    transforms.Resize(opt.img_size),
                                    transforms.CenterCrop(opt.img_size),
                                    transforms.ToTensor(),
-                                   transforms.Normalize(
-                                       (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                                ]))
     nc = 3
 elif opt.dataset == 'lsun':
@@ -64,8 +63,7 @@ elif opt.dataset == 'lsun':
                             transforms.Resize(opt.img_size),
                             transforms.CenterCrop(opt.img_size),
                             transforms.ToTensor(),
-                            transforms.Normalize(
-                                (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                         ]))
     nc = 3
 elif opt.dataset == 'cifar10':
@@ -73,11 +71,9 @@ elif opt.dataset == 'cifar10':
                            transform=transforms.Compose([
                                transforms.Resize(opt.img_size),
                                transforms.ToTensor(),
-                               transforms.Normalize(
-                                   (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                            ]))
     nc = 3
-
 elif opt.dataset == 'mnist':
     dataset = dset.MNIST(root=opt.dataroot, download=True,
                          transform=transforms.Compose([
@@ -86,7 +82,6 @@ elif opt.dataset == 'mnist':
                              transforms.Normalize((0.5,), (0.5,)),
                          ]))
     nc = 1
-
 elif opt.dataset == 'fake':
     dataset = dset.FakeData(image_size=(3, opt.img_size, opt.img_size),
                             transform=transforms.ToTensor())
@@ -156,17 +151,18 @@ class Discriminator(nn.Module):
 
         def discriminator_block(in_filters, out_filters, bn=True):
             """Returns layers of each discriminator block"""
-            block = [nn.Conv2d(in_filters, out_filters, 3, 2, 1), nn.LeakyReLU(
-                0.2, inplace=True), nn.Dropout2d(0.25)]
+            block = [nn.Conv2d(in_filters, out_filters, 3, 2, 1),
+                     nn.LeakyReLU(0.2, inplace=True),
+                     nn.Dropout2d(0.25)]
             if bn:
                 block.append(nn.BatchNorm2d(out_filters, 0.8))
             return block
 
         self.conv_blocks = nn.Sequential(
-            *discriminator_block(nc, 16, bn=False),
-            *discriminator_block(16, 32),
-            *discriminator_block(32, 64),
+            *discriminator_block(nc, 64, bn=False),
+            *discriminator_block(64, 64),
             *discriminator_block(64, 128),
+            *discriminator_block(128, 128),
         )
 
         # The height and width of downsampled image
