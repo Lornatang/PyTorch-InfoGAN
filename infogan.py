@@ -324,7 +324,7 @@ for epoch in range(opt.n_epochs):
       sampled_labels), requires_grad=False)
 
     # Sample noise, labels and code as generator input
-    z = autograd.Variable(FloatTensor(np.random.normal(0, 1, (batch_size, nz))))
+    z = torch.randn(batch_size, nz, device=device)
     label_input = to_categorical(sampled_labels, num_columns=opt.n_classes)
     code_input = autograd.Variable(FloatTensor(np.random.uniform(-1, 1, (batch_size, opt.code_dim))))
 
